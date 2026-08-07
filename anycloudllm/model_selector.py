@@ -12,6 +12,8 @@ disk bandwidth -- see ``AirLLMOption.summary()`` for a quick estimate.
 from __future__ import annotations
 
 import os
+import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
@@ -95,25 +97,99 @@ def is_cached(selection: ModelSelection) -> bool:
     return expected_path(selection).exists()
 
 
+class DownloadError(Exception):
+    """Raised when a model download fails for any reason."""
+
+
+def _check_disk_space(target_dir: Path, required_gb: float) -> None:
+    """Raise DownloadError if *target_dir*'s volume has less than *required_gb* GB free.
+
+    *target_dir* does not need to exist; the check walks up to the first
+    existing ancestor so it always finds a real mount point.
+    """
+    check_path = target_dir
+    while not check_path.exists():
+        check_path = check_path.parent
+
+    usage = shutil.disk_usage(check_path)
+    free_gb = usage.free / (1024 ** 3)
+    if free_gb < required_gb:
+        raise DownloadError(
+            f"Not enough disk space: need {required_gb:.1f} GB but only "
+            f"{free_gb:.1f} GB free on the volume containing {target_dir}."
+        )
+
+
 def download_model(selection: ModelSelection) -> Path:
     """Download the GGUF if missing, set ``local_path`` and return it.
 
     huggingface_hub is imported lazily so hardware scanning and selection work
     on a machine that only installed the base package.
+
+    Raises ``DownloadError`` (never a raw network or IO exception) so callers
+    can produce a clean error message without a traceback.
     """
     target = expected_path(selection)
     if target.exists():
         selection.local_path = target
         return target
 
-    from huggingface_hub import hf_hub_download
+    # Estimate size: rough upper bound used only for the pre-download space check.
+    # The model_size_gb_hint on AirLLMOption is accurate; for the main ladder
+    # we use a conservative 10 GB (covers the Q8_0 8B model at ~8.5 GB).
+    _SIZE_HINTS: dict[str, float] = {
+        "Llama-3.1-8B-Instruct-Q8_0.gguf": 9.0,
+        "Llama-3.1-8B-Instruct-Q4_K_M.gguf": 5.0,
+        "Llama-3.2-3B-Instruct-Q5_K_M.gguf": 2.5,
+        "Llama-3.2-1B-Instruct-Q4_K_M.gguf": 0.8,
+    }
+    required_gb = _SIZE_HINTS.get(selection.filename, 10.0)
+    _check_disk_space(target.parent, required_gb)
+
+    try:
+        from huggingface_hub import hf_hub_download
+    except ImportError as exc:
+        raise DownloadError(
+            "huggingface_hub is not installed. "
+            "Install it with: pip install huggingface-hub"
+        ) from exc
 
     target.parent.mkdir(parents=True, exist_ok=True)
-    path = hf_hub_download(
-        repo_id=selection.repo_id,
-        filename=selection.filename,
-        local_dir=str(target.parent),
-    )
+    tmp_target = target.with_suffix(".gguf.download")
+    try:
+        path = hf_hub_download(
+            repo_id=selection.repo_id,
+            filename=selection.filename,
+            local_dir=str(target.parent),
+        )
+    except KeyboardInterrupt:
+        # Clean up any partial file so the next run starts fresh.
+        for partial in (tmp_target, target):
+            if partial.exists():
+                try:
+                    partial.unlink()
+                except OSError:
+                    pass
+        raise
+    except Exception as exc:
+        err_msg = str(exc)
+        if "404" in err_msg or "Repository Not Found" in err_msg or "EntryNotFound" in err_msg:
+            raise DownloadError(
+                f"Model not found on HuggingFace Hub: {selection.label!r}.\n"
+                "The repository or file may have been moved or renamed."
+            ) from exc
+        if "disk" in err_msg.lower() or "space" in err_msg.lower() or isinstance(exc, OSError):
+            raise DownloadError(
+                f"Download failed — possible disk space issue.\n"
+                f"Check that {target.parent} has enough free space.\n"
+                f"Details: {exc}"
+            ) from exc
+        raise DownloadError(
+            f"Failed to download {selection.label!r}.\n"
+            f"Check your internet connection and try again.\n"
+            f"Details: {exc}"
+        ) from exc
+
     selection.local_path = Path(path)
     return selection.local_path
 
@@ -180,6 +256,7 @@ class AirLLMOption:
 
 
 # Catalog ordered largest-to-smallest so the user sees the most capable first.
+# All repo_ids and filenames must exist on HuggingFace Hub.
 _AIRLLM_CATALOG: list[AirLLMOption] = [
     AirLLMOption(
         param_label="70B",
@@ -189,17 +266,21 @@ _AIRLLM_CATALOG: list[AirLLMOption] = [
         num_layers=80,
     ),
     AirLLMOption(
-        param_label="34B",
-        repo_id="bartowski/Meta-Llama-3-34B-Instruct-GGUF",
-        filename="Meta-Llama-3-34B-Instruct-Q4_K_M.gguf",
-        size_gb=20.0,
-        num_layers=60,
+        # Qwen 2.5 32B — strong open-weight model in the 30B class.
+        # bartowski repo: https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF
+        param_label="32B",
+        repo_id="bartowski/Qwen2.5-32B-Instruct-GGUF",
+        filename="Qwen2.5-32B-Instruct-Q4_K_M.gguf",
+        size_gb=18.0,
+        num_layers=64,
     ),
     AirLLMOption(
-        param_label="13B",
-        repo_id="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-        filename="Llama-3.2-13B-Instruct-Q4_K_M.gguf",
-        size_gb=8.0,
+        # Mistral Nemo 12B — strong 12B model from Mistral AI.
+        # bartowski repo: https://huggingface.co/bartowski/Mistral-Nemo-12B-Instruct-2407-GGUF
+        param_label="12B",
+        repo_id="bartowski/Mistral-Nemo-12B-Instruct-2407-GGUF",
+        filename="Mistral-Nemo-12B-Instruct-2407-Q4_K_M.gguf",
+        size_gb=7.0,
         num_layers=40,
     ),
     AirLLMOption(

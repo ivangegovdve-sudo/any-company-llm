@@ -46,7 +46,8 @@ Output looks like:
 Scanning hardware...
   31.9 GB RAM, 16 CPUs, 8.0 GB VRAM
 Selected model: bartowski/Llama-3.1-8B-Instruct-GGUF/Llama-3.1-8B-Instruct-Q8_0.gguf (reason: 8.0 GB VRAM (>= 8 GB) fits an 8B model at Q8_0 near-lossless quality)
-Downloading bartowski/Llama-3.1-8B-Instruct-GGUF/Llama-3.1-8B-Instruct-Q8_0.gguf... (this may take a few minutes)
+Downloading bartowski/Llama-3.1-8B-Instruct-GGUF/Llama-3.1-8B-Instruct-Q8_0.gguf...
+  This may take several minutes. Progress is shown below.
 Starting server at http://127.0.0.1:8080
 ```
 
@@ -54,11 +55,13 @@ Starting server at http://127.0.0.1:8080
 
 | Flag | Meaning |
 | --- | --- |
-| `--port N` | Bind port. Env fallback: `ANYCLOUDLLM_PORT`. Default `8080`. |
+| `--port N` | Bind port (1–65535). Env fallback: `ANYCLOUDLLM_PORT`. Default `8080`. |
 | `--host H` | Bind host. Env fallback: `ANYCLOUDLLM_HOST`. Default `127.0.0.1`. |
 | `--no-download` | Exit non-zero instead of downloading a model that is not cached yet. |
 | `--model-path PATH` | Serve this GGUF; skip hardware-based selection entirely. |
 | `--n-ctx N` | Context window. Default `4096`. |
+| `--airllm` | Print AirLLM layer-streaming options for large models, then exit. |
+| `--airllm-disk-bw GB_S` | Disk bandwidth assumption for `--airllm` estimates (default `3.0` = NVMe). |
 
 Model cache: `~/.cache/anycloudllm/models/` (override with `ANYCLOUDLLM_CACHE_DIR`).
 
@@ -97,7 +100,7 @@ neither library installed simply reports `0.0` VRAM.
 | Condition | Model | Quant |
 | --- | --- | --- |
 | VRAM ≥ 8 GB | `bartowski/Llama-3.1-8B-Instruct-GGUF` | `Q8_0` |
-| VRAM ≥ 4 GB **or** RAM ≥ 16 GB | `bartowski/Llama-3.1-8B-Instruct-GGUF` | `Q4_K_M` |
+| VRAM ≥ 4 GB **or** RAM ≥ 15 GB | `bartowski/Llama-3.1-8B-Instruct-GGUF` | `Q4_K_M` |
 | RAM ≥ 8 GB | `bartowski/Llama-3.2-3B-Instruct-GGUF` | `Q5_K_M` |
 | otherwise | `bartowski/Llama-3.2-1B-Instruct-GGUF` | `Q4_K_M` |
 
@@ -112,6 +115,32 @@ profile = scan_hardware()
 selection = select_model(profile)
 print(selection.label, "-", selection.reason)
 ```
+
+## AirLLM: running larger models with limited RAM
+
+[AirLLM](https://github.com/lyogavin/airllm) streams transformer layers from disk one at a time,
+letting you run 12B–70B models with only a few GB of RAM. Throughput is bounded by disk speed
+rather than memory bandwidth (think ~1–4 tokens/minute on NVMe), but it works on any machine.
+
+```bash
+# See available models and speed estimates on your disk type:
+anycloudllm --airllm
+anycloudllm --airllm --airllm-disk-bw 0.5   # SATA SSD
+anycloudllm --airllm --airllm-disk-bw 0.1   # HDD
+```
+
+To run a downloaded AirLLM model:
+```bash
+pip install airllm
+anycloudllm --model-path /path/to/model.gguf
+```
+
+## Error handling
+
+- **Disk space**: checked before every download; a clear error is printed if the volume is too full.
+- **Network errors**: wrapped with an actionable message — no raw tracebacks.
+- **Missing `llama-cpp-python[server]`**: detected before the model download starts, not after.
+- **Port conflicts**: the port is validated (1–65535 range) before any work begins.
 
 ## Optional Hermes bridge
 

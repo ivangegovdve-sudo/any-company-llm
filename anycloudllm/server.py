@@ -21,6 +21,9 @@ PORT_ENV = "ANYCLOUDLLM_PORT"
 HOST_ENV = "ANYCLOUDLLM_HOST"
 MODEL_ALIAS = "local"
 
+_MIN_PORT = 1
+_MAX_PORT = 65535
+
 
 @dataclass
 class ServerConfig:
@@ -37,21 +40,50 @@ class ServerConfig:
 
 
 def resolve_port(explicit: int | None = None) -> int:
-    """CLI flag wins, then ``ANYCLOUDLLM_PORT``, then 8080."""
+    """CLI flag wins, then ``ANYCLOUDLLM_PORT``, then 8080.
+
+    Raises ``ValueError`` if the resolved port is outside 1–65535.
+    """
     if explicit is not None:
-        return explicit
-    raw = os.environ.get(PORT_ENV)
-    if not raw:
-        return DEFAULT_PORT
-    try:
-        return int(raw)
-    except ValueError:
-        logger.warning("ignoring non-numeric %s=%r", PORT_ENV, raw)
-        return DEFAULT_PORT
+        port = explicit
+    else:
+        raw = os.environ.get(PORT_ENV)
+        if not raw:
+            return DEFAULT_PORT
+        try:
+            port = int(raw)
+        except ValueError:
+            logger.warning("ignoring non-numeric %s=%r", PORT_ENV, raw)
+            return DEFAULT_PORT
+
+    if not (_MIN_PORT <= port <= _MAX_PORT):
+        raise ValueError(
+            f"Port {port} is out of range. Must be between {_MIN_PORT} and {_MAX_PORT}."
+        )
+    return port
 
 
 def resolve_host(explicit: str | None = None) -> str:
     return explicit or os.environ.get(HOST_ENV) or DEFAULT_HOST
+
+
+def check_llama_cpp_server() -> None:
+    """Verify that llama-cpp-python's server extra is installed.
+
+    Raises ``RuntimeError`` with an actionable message if the import fails.
+    Call this *before* downloading the model so the user learns about the
+    missing dependency immediately rather than after a multi-GB download.
+    """
+    try:
+        from llama_cpp.server.app import create_app  # noqa: F401
+        from llama_cpp.server.settings import ModelSettings, ServerSettings  # noqa: F401
+    except ImportError as exc:
+        raise RuntimeError(
+            "llama-cpp-python's server extra is missing.\n"
+            "Install it with: pip install 'llama-cpp-python[server]'\n\n"
+            "For GPU support, install with the appropriate backend first — see:\n"
+            "  https://github.com/abetlen/llama-cpp-python#installation-with-specific-hardware"
+        ) from exc
 
 
 def build_app(config: ServerConfig):

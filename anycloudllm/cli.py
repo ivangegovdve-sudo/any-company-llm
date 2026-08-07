@@ -9,12 +9,13 @@ from pathlib import Path
 from anycloudllm import __version__
 from anycloudllm.hardware_scanner import HardwareProfile, scan_hardware
 from anycloudllm.model_selector import (
+    DownloadError,
     airllm_options,
     download_model,
     expected_path,
     select_model,
 )
-from anycloudllm.server import ServerConfig, resolve_host, resolve_port, run_server
+from anycloudllm.server import ServerConfig, check_llama_cpp_server, resolve_host, resolve_port
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -104,12 +105,27 @@ def resolve_model_path(args: argparse.Namespace, profile: HardwareProfile) -> Pa
         )
         return None
 
-    print(f"Downloading {selection.label}... (this may take a few minutes)")
-    return download_model(selection)
+    print(f"Downloading {selection.label}...")
+    print("  This may take several minutes. Progress is shown below.")
+    try:
+        return download_model(selection)
+    except DownloadError as exc:
+        print(f"\nDownload failed: {exc}", file=sys.stderr)
+        return None
+    except KeyboardInterrupt:
+        print("\nDownload cancelled.", file=sys.stderr)
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    # Resolve and validate the port before doing any heavy work.
+    try:
+        port = resolve_port(args.port)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
     print("Scanning hardware...")
     profile = scan_hardware()
@@ -119,6 +135,15 @@ def main(argv: list[str] | None = None) -> int:
         print_airllm_options(args.airllm_disk_bw)
         return 0
 
+    # Check for llama-cpp-python[server] early — before the model download —
+    # so the user learns about missing deps immediately.
+    if args.model_path is None or True:  # always check; --model-path doesn't skip the server
+        try:
+            check_llama_cpp_server()
+        except RuntimeError as exc:
+            print(f"\nError: {exc}", file=sys.stderr)
+            return 1
+
     model_path = resolve_model_path(args, profile)
     if model_path is None:
         return 1
@@ -126,7 +151,7 @@ def main(argv: list[str] | None = None) -> int:
     config = ServerConfig(
         model_path=model_path,
         host=resolve_host(args.host),
-        port=resolve_port(args.port),
+        port=port,
         n_ctx=args.n_ctx,
         n_gpu_layers=-1 if profile.has_gpu else 0,
     )
