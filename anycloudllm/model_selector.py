@@ -23,7 +23,7 @@ from anycloudllm.hardware_scanner import HardwareProfile
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "anycloudllm" / "models"
 CACHE_DIR_ENV = "ANYCLOUDLLM_CACHE_DIR"
 
-LLAMA_8B_REPO = "bartowski/Llama-3.1-8B-Instruct-GGUF"
+LLAMA_8B_REPO = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
 LLAMA_3B_REPO = "bartowski/Llama-3.2-3B-Instruct-GGUF"
 LLAMA_1B_REPO = "bartowski/Llama-3.2-1B-Instruct-GGUF"
 
@@ -45,13 +45,13 @@ _RULES: list[tuple[Callable[[HardwareProfile], bool], str, str, str]] = [
     (
         lambda p: p.gpu_vram_gb >= 8.0,
         LLAMA_8B_REPO,
-        "Llama-3.1-8B-Instruct-Q8_0.gguf",
+        "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf",
         "{vram:.1f} GB VRAM (>= 8 GB) fits an 8B model at Q8_0 near-lossless quality",
     ),
     (
         lambda p: p.gpu_vram_gb >= 4.0 or p.total_ram_gb >= 15.0,
         LLAMA_8B_REPO,
-        "Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
         "{vram:.1f} GB VRAM / {ram:.1f} GB RAM fits an 8B model at Q4_K_M",
     ),
     (
@@ -138,8 +138,8 @@ def download_model(selection: ModelSelection) -> Path:
     # The model_size_gb_hint on AirLLMOption is accurate; for the main ladder
     # we use a conservative 10 GB (covers the Q8_0 8B model at ~8.5 GB).
     _SIZE_HINTS: dict[str, float] = {
-        "Llama-3.1-8B-Instruct-Q8_0.gguf": 9.0,
-        "Llama-3.1-8B-Instruct-Q4_K_M.gguf": 5.0,
+        "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf": 9.0,
+        "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf": 5.0,
         "Llama-3.2-3B-Instruct-Q5_K_M.gguf": 2.5,
         "Llama-3.2-1B-Instruct-Q4_K_M.gguf": 0.8,
     }
@@ -286,7 +286,7 @@ _AIRLLM_CATALOG: list[AirLLMOption] = [
     AirLLMOption(
         param_label="8B (via AirLLM)",
         repo_id=LLAMA_8B_REPO,
-        filename="Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        filename="Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
         size_gb=5.0,
         num_layers=32,
     ),

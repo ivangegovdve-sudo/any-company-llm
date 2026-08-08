@@ -44,29 +44,29 @@ class TestTiers:
     def test_tier1_big_gpu_gets_8b_q8(self):
         s = select_model(profile(ram_gb=64, vram_gb=24))
         assert s.repo_id == LLAMA_8B_REPO
-        assert s.filename == "Llama-3.1-8B-Instruct-Q8_0.gguf"
+        assert s.filename == "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
 
     def test_tier1_boundary_exactly_8gb_vram(self):
-        assert select_model(profile(ram_gb=16, vram_gb=8.0)).filename == "Llama-3.1-8B-Instruct-Q8_0.gguf"
+        assert select_model(profile(ram_gb=16, vram_gb=8.0)).filename == "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
 
     def test_tier2_midrange_gpu_gets_8b_q4(self):
         s = select_model(profile(ram_gb=8, vram_gb=6))
         assert s.repo_id == LLAMA_8B_REPO
-        assert s.filename == "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+        assert s.filename == "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
 
     def test_tier2_boundary_exactly_4gb_vram(self):
-        assert select_model(profile(ram_gb=8, vram_gb=4.0)).filename == "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+        assert select_model(profile(ram_gb=8, vram_gb=4.0)).filename == "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
 
     def test_tier2_reached_by_ram_alone(self):
         s = select_model(profile(ram_gb=32, vram_gb=0.0))
         assert s.repo_id == LLAMA_8B_REPO
-        assert s.filename == "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+        assert s.filename == "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
 
     def test_tier2_boundary_exactly_16gb_ram(self):
-        assert select_model(profile(ram_gb=16.0)).filename == "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+        assert select_model(profile(ram_gb=16.0)).filename == "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
 
     def test_tier2_boundary_exactly_15gb_ram(self):
-        assert select_model(profile(ram_gb=15.0)).filename == "Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+        assert select_model(profile(ram_gb=15.0)).filename == "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
 
     def test_tier3_modest_ram_gets_3b(self):
         s = select_model(profile(ram_gb=12, vram_gb=2))
@@ -87,9 +87,9 @@ class TestTiers:
     @pytest.mark.parametrize(
         ("ram", "vram", "filename"),
         [
-            (64, 24, "Llama-3.1-8B-Instruct-Q8_0.gguf"),
-            (8, 6, "Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
-            (32, 0, "Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
+            (64, 24, "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"),
+            (8, 6, "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
+            (32, 0, "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
             (12, 0, "Llama-3.2-3B-Instruct-Q5_K_M.gguf"),
             (4, 0, "Llama-3.2-1B-Instruct-Q4_K_M.gguf"),
         ],
@@ -129,7 +129,7 @@ class TestCacheAndDownload:
 
     def test_selection_picks_up_existing_cached_file(self, isolated_cache):
         isolated_cache.mkdir(parents=True)
-        cached = isolated_cache / "Llama-3.1-8B-Instruct-Q8_0.gguf"
+        cached = isolated_cache / "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
         cached.write_bytes(b"gguf")
         selection = select_model(profile(ram_gb=64, vram_gb=24))
         assert selection.local_path == cached

@@ -45,8 +45,8 @@ Output looks like:
 ```
 Scanning hardware...
   31.9 GB RAM, 16 CPUs, 8.0 GB VRAM
-Selected model: bartowski/Llama-3.1-8B-Instruct-GGUF/Llama-3.1-8B-Instruct-Q8_0.gguf (reason: 8.0 GB VRAM (>= 8 GB) fits an 8B model at Q8_0 near-lossless quality)
-Downloading bartowski/Llama-3.1-8B-Instruct-GGUF/Llama-3.1-8B-Instruct-Q8_0.gguf...
+Selected model: bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf (reason: 8.0 GB VRAM (>= 8 GB) fits an 8B model at Q8_0 near-lossless quality)
+Downloading bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf...
   This may take several minutes. Progress is shown below.
 Starting server at http://127.0.0.1:8080
 ```
@@ -99,8 +99,8 @@ neither library installed simply reports `0.0` VRAM.
 
 | Condition | Model | Quant |
 | --- | --- | --- |
-| VRAM ≥ 8 GB | `bartowski/Llama-3.1-8B-Instruct-GGUF` | `Q8_0` |
-| VRAM ≥ 4 GB **or** RAM ≥ 15 GB | `bartowski/Llama-3.1-8B-Instruct-GGUF` | `Q4_K_M` |
+| VRAM ≥ 8 GB | `bartowski/Meta-Llama-3.1-8B-Instruct-GGUF` | `Q8_0` |
+| VRAM ≥ 4 GB **or** RAM ≥ 15 GB | `bartowski/Meta-Llama-3.1-8B-Instruct-GGUF` | `Q4_K_M` |
 | RAM ≥ 8 GB | `bartowski/Llama-3.2-3B-Instruct-GGUF` | `Q5_K_M` |
 | otherwise | `bartowski/Llama-3.2-1B-Instruct-GGUF` | `Q4_K_M` |
 
