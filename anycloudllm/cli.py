@@ -15,7 +15,14 @@ from anycloudllm.model_selector import (
     expected_path,
     select_model,
 )
-from anycloudllm.server import ServerConfig, check_llama_cpp_server, resolve_host, resolve_port
+from anycloudllm.server import (
+    ServerConfig,
+    check_llama_cpp_server,
+    ensure_free_port,
+    resolve_host,
+    resolve_port,
+    run_server,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -120,10 +127,24 @@ def resolve_model_path(args: argparse.Namespace, profile: HardwareProfile) -> Pa
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
-    # Resolve and validate the port before doing any heavy work.
+    # Progress lines are useless if they sit in a buffer until exit — which is
+    # what happens whenever stdout is a pipe or a file rather than a console.
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except (AttributeError, OSError):  # pragma: no cover - exotic stdout
+        pass
+
+    # Resolve, validate and bind-test the port before doing any heavy work —
+    # a conflict discovered after the model load looks like a slow crash.
+    host = resolve_host(args.host)
     try:
         port = resolve_port(args.port)
     except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    try:
+        port = ensure_free_port(host, port, chosen=args.port is not None)
+    except OSError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
@@ -150,12 +171,17 @@ def main(argv: list[str] | None = None) -> int:
 
     config = ServerConfig(
         model_path=model_path,
-        host=resolve_host(args.host),
+        host=host,
         port=port,
         n_ctx=args.n_ctx,
         n_gpu_layers=-1 if profile.has_gpu else 0,
     )
     print(f"Starting server at {config.url}")
+    # Keep console output ASCII: the Windows console is not reliably UTF-8.
+    print("  Loading the model into memory - this takes a minute on CPU.")
+    print()
+    print(f"  Chat in your browser:  {config.url}")
+    print(f"  OpenAI-compatible API: {config.url}/v1")
     print()
     print("Tip: run with --airllm to see high-parameter options via layer streaming.")
     try:
