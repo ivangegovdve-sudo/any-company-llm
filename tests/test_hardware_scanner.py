@@ -7,8 +7,8 @@ import types
 
 import pytest
 
-from any_company_llm import hardware_scanner
-from any_company_llm.hardware_scanner import HardwareProfile, scan_hardware
+from anycloudllm import hardware_scanner
+from anycloudllm.hardware_scanner import HardwareProfile, scan_hardware
 
 GB = 1024**3
 

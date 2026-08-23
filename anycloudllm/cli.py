@@ -1,4 +1,4 @@
-"""``python -m any_company_llm`` — scan, select, download, serve."""
+"""``python -m anycloudllm`` — scan, select, download, serve."""
 
 from __future__ import annotations
 
@@ -6,24 +6,24 @@ import argparse
 import sys
 from pathlib import Path
 
-from any_company_llm import __version__
-from any_company_llm.hardware_scanner import HardwareProfile, scan_hardware
-from any_company_llm.model_selector import download_model, expected_path, select_model
-from any_company_llm.server import ServerConfig, resolve_host, resolve_port, run_server
+from anycloudllm import __version__
+from anycloudllm.hardware_scanner import HardwareProfile, scan_hardware
+from anycloudllm.model_selector import download_model, expected_path, select_model
+from anycloudllm.server import ServerConfig, resolve_host, resolve_port, run_server
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="any-company-llm",
+        prog="anycloudllm",
         description="Scan hardware, download the right model, serve locally.",
     )
     parser.add_argument(
         "--port", type=int, default=None,
-        help="port to bind (env: ANY_COMPANY_LLM_PORT, default 8080)",
+        help="port to bind (env: ANYCLOUDLLM_PORT, default 8080)",
     )
     parser.add_argument(
         "--host", default=None,
-        help="host to bind (env: ANY_COMPANY_LLM_HOST, default 127.0.0.1)",
+        help="host to bind (env: ANYCLOUDLLM_HOST, default 127.0.0.1)",
     )
     parser.add_argument(
         "--no-download", action="store_true",
@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="serve this GGUF instead of auto-selecting one",
     )
     parser.add_argument("--n-ctx", type=int, default=4096, help="context window (default 4096)")
-    parser.add_argument("--version", action="version", version=f"any-company-llm {__version__}")
+    parser.add_argument("--version", action="version", version=f"anycloudllm {__version__}")
     return parser
 
 
