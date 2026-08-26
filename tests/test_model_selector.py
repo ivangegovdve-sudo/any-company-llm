@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from any_company_llm.hardware_scanner import HardwareProfile
-from any_company_llm.model_selector import (
+from anycloudllm.hardware_scanner import HardwareProfile
+from anycloudllm.model_selector import (
     CACHE_DIR_ENV,
     LLAMA_1B_REPO,
     LLAMA_3B_REPO,

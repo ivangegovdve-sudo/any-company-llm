@@ -1,7 +1,7 @@
 """Pick a GGUF model that fits the host, and fetch it on demand.
 
 Selection is a first-match-wins ladder over the HardwareProfile. Downloads go
-through huggingface_hub into ``~/.cache/any-company-llm/models/`` so a second
+through huggingface_hub into ``~/.cache/anycloudllm/models/`` so a second
 run is offline.
 """
 
@@ -12,10 +12,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from any_company_llm.hardware_scanner import HardwareProfile
+from anycloudllm.hardware_scanner import HardwareProfile
 
-DEFAULT_CACHE_DIR = Path.home() / ".cache" / "any-company-llm" / "models"
-CACHE_DIR_ENV = "ANY_COMPANY_LLM_CACHE_DIR"
+DEFAULT_CACHE_DIR = Path.home() / ".cache" / "anycloudllm" / "models"
+CACHE_DIR_ENV = "ANYCLOUDLLM_CACHE_DIR"
 
 LLAMA_8B_REPO = "bartowski/Llama-3.1-8B-Instruct-GGUF"
 LLAMA_3B_REPO = "bartowski/Llama-3.2-3B-Instruct-GGUF"

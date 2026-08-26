@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8080
-PORT_ENV = "ANY_COMPANY_LLM_PORT"
-HOST_ENV = "ANY_COMPANY_LLM_HOST"
+PORT_ENV = "ANYCLOUDLLM_PORT"
+HOST_ENV = "ANYCLOUDLLM_HOST"
 MODEL_ALIAS = "local"
 
 
@@ -37,7 +37,7 @@ class ServerConfig:
 
 
 def resolve_port(explicit: int | None = None) -> int:
-    """CLI flag wins, then ``ANY_COMPANY_LLM_PORT``, then 8080."""
+    """CLI flag wins, then ``ANYCLOUDLLM_PORT``, then 8080."""
     if explicit is not None:
         return explicit
     raw = os.environ.get(PORT_ENV)

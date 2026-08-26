@@ -1,4 +1,9 @@
-# any-company-llm
+<img src="assets/cac-logo.png" width="100" />
+
+# AnyCloudLLM — Chase a Cloud
+
+> *We build universes.*
+
 
 Scan the host hardware, pick a GGUF model that actually fits it, download it once, and serve it
 over an OpenAI-compatible HTTP API on localhost.
@@ -9,14 +14,14 @@ telemetry. It is a standalone app: nothing here requires Hermes.
 ## Install
 
 ```bash
-pip install any-company-llm
+pip install anycloudllm
 ```
 
 Optional extras:
 
 ```bash
-pip install "any-company-llm[gpu]"      # pynvml, for NVIDIA VRAM detection
-pip install "any-company-llm[hermes]"   # only if you want the Hermes bridge
+pip install "anycloudllm[gpu]"      # pynvml, for NVIDIA VRAM detection
+pip install "anycloudllm[hermes]"   # only if you want the Hermes bridge
 ```
 
 `llama-cpp-python` builds a native library at install time. If you want GPU offload, install it
@@ -26,13 +31,13 @@ install this package.
 ## Run
 
 ```bash
-python -m any_company_llm
+python -m anycloudllm
 ```
 
 or, via the console script:
 
 ```bash
-any-company-llm --port 8080
+anycloudllm --port 8080
 ```
 
 Output looks like:
@@ -49,13 +54,13 @@ Starting server at http://127.0.0.1:8080
 
 | Flag | Meaning |
 | --- | --- |
-| `--port N` | Bind port. Env fallback: `ANY_COMPANY_LLM_PORT`. Default `8080`. |
-| `--host H` | Bind host. Env fallback: `ANY_COMPANY_LLM_HOST`. Default `127.0.0.1`. |
+| `--port N` | Bind port. Env fallback: `ANYCLOUDLLM_PORT`. Default `8080`. |
+| `--host H` | Bind host. Env fallback: `ANYCLOUDLLM_HOST`. Default `127.0.0.1`. |
 | `--no-download` | Exit non-zero instead of downloading a model that is not cached yet. |
 | `--model-path PATH` | Serve this GGUF; skip hardware-based selection entirely. |
 | `--n-ctx N` | Context window. Default `4096`. |
 
-Model cache: `~/.cache/any-company-llm/models/` (override with `ANY_COMPANY_LLM_CACHE_DIR`).
+Model cache: `~/.cache/anycloudllm/models/` (override with `ANYCLOUDLLM_CACHE_DIR`).
 
 ## API
 
@@ -101,7 +106,7 @@ Every selection carries a `reason` string explaining the match, which the CLI pr
 Use it directly:
 
 ```python
-from any_company_llm import scan_hardware, select_model
+from anycloudllm import scan_hardware, select_model
 
 profile = scan_hardware()
 selection = select_model(profile)
@@ -113,7 +118,7 @@ print(selection.label, "-", selection.reason)
 `hermes_bridge` is inert unless `hermes_agents` is installed. It never affects the standalone path.
 
 ```python
-from any_company_llm.hermes_bridge import get_hermes_adapter
+from anycloudllm.hermes_bridge import get_hermes_adapter
 
 adapter = get_hermes_adapter(port=8080)  # None if Hermes is not installed
 ```
@@ -130,10 +135,10 @@ model cache is redirected to a temp directory.
 ## Layout
 
 ```
-any_company_llm/
+anycloudllm/
 ├── hardware_scanner.py   # detect RAM + VRAM
 ├── model_selector.py     # choose model + quant level + download
 ├── server.py             # launch llama-cpp-python server
-├── cli.py                # python -m any_company_llm entry point
-└── hermes_bridge.py      # optional Hermes AnyCompanyLLMAdapter wiring
+├── cli.py                # python -m anycloudllm entry point
+└── hermes_bridge.py      # optional Hermes AnyCloudLLMAdapter wiring
 ```
