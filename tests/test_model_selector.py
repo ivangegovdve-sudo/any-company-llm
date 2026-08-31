@@ -186,3 +186,34 @@ class TestCacheAndDownload:
     def test_label_is_repo_slash_filename(self):
         selection = select_model(profile(ram_gb=4))
         assert selection.label == f"{LLAMA_1B_REPO}/{selection.filename}"
+
+
+class TestAirLLMOptions:
+    """Tests for the AirLLM catalog and speed estimates."""
+
+    def test_airllm_options_returns_list(self):
+        from anycloudllm.model_selector import airllm_options
+        opts = airllm_options()
+        assert len(opts) >= 1
+
+    def test_airllm_summary_contains_slowdown(self):
+        from anycloudllm.model_selector import airllm_options
+        for opt in airllm_options():
+            s = opt.summary()
+            assert "slower" in s
+
+    def test_tier2_boundary_15gb_ram(self):
+        """15 GB RAM (no GPU) should now reach tier-2 (8B Q4_K_M)."""
+        from anycloudllm.hardware_scanner import HardwareProfile
+        from anycloudllm.model_selector import select_model
+        p = HardwareProfile(total_ram_gb=15.0, gpu_vram_gb=0.0, cpu_count=8, has_gpu=False)
+        sel = select_model(p)
+        assert "Q4_K_M" in sel.filename
+        assert "8B" in sel.filename
+
+    def test_tokens_per_minute_scales_with_bandwidth(self):
+        from anycloudllm.model_selector import airllm_options
+        opt = airllm_options()[0]  # 70B
+        tpm_nvme = opt.tokens_per_minute(disk_bw_gb_s=3.0)
+        tpm_hdd = opt.tokens_per_minute(disk_bw_gb_s=0.1)
+        assert tpm_nvme > tpm_hdd

@@ -8,7 +8,12 @@ from pathlib import Path
 
 from anycloudllm import __version__
 from anycloudllm.hardware_scanner import HardwareProfile, scan_hardware
-from anycloudllm.model_selector import download_model, expected_path, select_model
+from anycloudllm.model_selector import (
+    airllm_options,
+    download_model,
+    expected_path,
+    select_model,
+)
 from anycloudllm.server import ServerConfig, resolve_host, resolve_port, run_server
 
 
@@ -35,7 +40,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--n-ctx", type=int, default=4096, help="context window (default 4096)")
     parser.add_argument("--version", action="version", version=f"anycloudllm {__version__}")
+    parser.add_argument(
+        "--airllm", action="store_true",
+        help=(
+            "show AirLLM layer-streaming options for high-parameter models, "
+            "then exit without starting a server"
+        ),
+    )
+    parser.add_argument(
+        "--airllm-disk-bw", type=float, default=3.0, metavar="GB_S",
+        help=(
+            "assumed disk read bandwidth in GB/s for AirLLM speed estimates "
+            "(default 3.0 = NVMe; use 0.5 for SATA SSD, 0.1 for HDD)"
+        ),
+    )
     return parser
+
+
+def print_airllm_options(disk_bw_gb_s: float) -> None:
+    """Print the AirLLM catalog with speed estimates and exit."""
+    print()
+    print("AirLLM layer-streaming options")
+    print("=" * 60)
+    print(
+        "AirLLM (github.com/lyogavin/airllm) loads one transformer layer at a\n"
+        "time from disk, letting you run parameter-heavy models on limited RAM.\n"
+        "Install: pip install airllm\n"
+    )
+    print(f"Speed estimates assume {disk_bw_gb_s:.1f} GB/s sustained disk read.")
+    print("Pass --airllm-disk-bw <n> to adjust (0.5 = SATA SSD, 0.1 = HDD).\n")
+    for opt in airllm_options():
+        print(f"  {opt.summary(disk_bw_gb_s)}")
+        print(f"    {opt.label}")
+        print()
+    print(
+        "To use an AirLLM model, pass its downloaded GGUF path via --model-path\n"
+        "and make sure airllm is installed and configured for layer streaming."
+    )
 
 
 def resolve_model_path(args: argparse.Namespace, profile: HardwareProfile) -> Path | None:
@@ -74,6 +115,10 @@ def main(argv: list[str] | None = None) -> int:
     profile = scan_hardware()
     print(f"  {profile.describe()}")
 
+    if args.airllm:
+        print_airllm_options(args.airllm_disk_bw)
+        return 0
+
     model_path = resolve_model_path(args, profile)
     if model_path is None:
         return 1
@@ -86,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
         n_gpu_layers=-1 if profile.has_gpu else 0,
     )
     print(f"Starting server at {config.url}")
+    print()
+    print("Tip: run with --airllm to see high-parameter options via layer streaming.")
     try:
         run_server(config)
     except KeyboardInterrupt:
