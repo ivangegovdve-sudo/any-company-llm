@@ -7,3 +7,10 @@ dist/
 build/
 .pytest_cache/
 *.gguf
+*.spec
+*.log
+
+# Throwaway build environment for the PyInstaller bundle.
+.build-venv/
+# Dated editor/manual backups, e.g. cli.py.bak-20260812
+*.bak-*
